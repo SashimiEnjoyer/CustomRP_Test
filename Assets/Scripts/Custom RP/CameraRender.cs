@@ -1,12 +1,15 @@
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.RendererUtils;
 
-public class CameraRender
+public partial class CameraRender
 {
     const string RenderCameraBufferName = "Render Camera";
-
+    static ShaderTagId unlitShaderTagId = new ShaderTagId("SRPDefaultUnlit");
+   
     ScriptableRenderContext context;
     Camera camera;
+    CullingResults cullingResults;
 
     CommandBuffer buffer = new CommandBuffer { name = RenderCameraBufferName };
 
@@ -15,17 +18,70 @@ public class CameraRender
     {
         this.context = context;
         this.camera = camera;
+        PrepareBuffer();
+        PrepareForSceneWindow();
+        if(!Cull())
+        {
+            return;
+        }   
 
         Setup();
-        DrawVisibleGeometry();
+        DrawOpaqueGeometry();
+        DrawGizmosPre();
+        DrawSkybox();
+        DrawTransparentGeometry();
+        DrawGizmosPost();
+        DrawUnsupportedShaders();
         Submit();
     }
 
-    private void DrawVisibleGeometry()
+    private void DrawOpaqueGeometry()
     {
-        //Create skybox renderer list and draw it
-        var skyboxRendererList = context.CreateSkyboxRendererList(camera);
+        //// ---------- Draw Opaque Setup ----------
+        var rendererListDesc = new RendererListDesc(
+            unlitShaderTagId,
+            cullingResults,
+            camera)
+        {
 
+            sortingCriteria = SortingCriteria.CommonOpaque,
+            renderQueueRange = RenderQueueRange.opaque,
+            layerMask = camera.cullingMask
+        };
+
+        //// ---------- Create Renderer List ----------
+        var rendererList = context.CreateRendererList(rendererListDesc);
+
+        //// ---------- Ask Buffer to Draw  ----------
+        buffer.DrawRendererList(rendererList);
+
+    }
+
+    private void DrawTransparentGeometry()
+    {
+        //// ---------- Draw Transparent Setup ----------
+        var rendererListDesc = new RendererListDesc(
+            unlitShaderTagId,
+            cullingResults,
+            camera)
+        {
+
+            sortingCriteria = SortingCriteria.CommonTransparent,
+            renderQueueRange = RenderQueueRange.transparent,
+            layerMask = camera.cullingMask
+        };
+
+        //// ---------- Create Renderer List ----------
+        var rendererList = context.CreateRendererList(rendererListDesc);
+
+        //// ---------- Ask Buffer to Draw  ----------
+        buffer.DrawRendererList(rendererList);
+
+    }
+    
+    private void DrawSkybox()
+    {
+        var skyboxRendererList = context.CreateSkyboxRendererList(camera);
         buffer.DrawRendererList(skyboxRendererList);
     }
 
@@ -53,9 +109,20 @@ public class CameraRender
     }
 
     //Execute the command buffer and then clear it
-    void ExecuteBuffer () {
-		context.ExecuteCommandBuffer(buffer);
-		buffer.Clear();
-	}
+    private void ExecuteBuffer()
+    {
+        context.ExecuteCommandBuffer(buffer);
+        buffer.Clear();
+    }
+
+    private bool Cull()
+    {
+        if (camera.TryGetCullingParameters(out ScriptableCullingParameters p))
+        {
+            cullingResults = context.Cull(ref p);
+            return true;
+        }
+        return false;
+    }
 
 }
