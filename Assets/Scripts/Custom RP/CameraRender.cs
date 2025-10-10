@@ -10,7 +10,6 @@ public partial class CameraRender
     ScriptableRenderContext context;
     Camera camera;
     CullingResults cullingResults;
-
     CommandBuffer buffer = new CommandBuffer { name = RenderCameraBufferName };
 
     // Draw all geometry that its camera can see
@@ -18,20 +17,21 @@ public partial class CameraRender
     {
         this.context = context;
         this.camera = camera;
+        
         PrepareBuffer();
         PrepareForSceneWindow();
-        if(!Cull())
-        {
-            return;
-        }   
 
+        if(!Cull())
+            return;
+           
         Setup();
         DrawOpaqueGeometry();
-        DrawGizmosPre();
         DrawSkybox();
         DrawTransparentGeometry();
-        DrawGizmosPost();
         DrawUnsupportedShaders();
+
+        DrawGizmosPost();
+        
         Submit();
     }
 
@@ -90,21 +90,26 @@ public partial class CameraRender
     {
         context.SetupCameraProperties(camera);
 
+        CameraClearFlags flags = camera.clearFlags;
+
         //Clear the render target
-        buffer.ClearRenderTarget(true, true, Color.clear);
+        buffer.ClearRenderTarget(
+            flags <= CameraClearFlags.Depth,
+            flags == CameraClearFlags.Color,
+            flags == CameraClearFlags.Color ? camera.backgroundColor.linear : Color.clear);
 
-        //Sample for frame debugger and profiling
-        buffer.BeginSample(RenderCameraBufferName);
+        //Sample for frame debugger
+        buffer.BeginSample(SampleName);
 
-        
     }
 
     //Submit the context to execute the commands in GPU
     private void Submit()
     {
-        buffer.EndSample(RenderCameraBufferName);
+        buffer.EndSample(SampleName);
         ExecuteBuffer();
 
+        //Submit commands to GPU
         context.Submit();
     }
 

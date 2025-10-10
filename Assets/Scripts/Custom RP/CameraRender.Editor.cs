@@ -1,11 +1,11 @@
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Profiling;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RendererUtils;
 
 public partial class CameraRender
 {
-    partial void DrawGizmosPre();
     partial void DrawGizmosPost();
     partial void PrepareBuffer ();
     partial void DrawUnsupportedShaders();
@@ -21,11 +21,18 @@ public partial class CameraRender
     };
     static Material errorMaterial;
 
+
 #if UNITY_EDITOR
-    partial void PrepareBuffer ()
+
+    string SampleName { get; set; }
+    
+    partial void PrepareBuffer()
     {
-		buffer.name = camera.name;
-	}
+        Profiler.BeginSample("Editor Only");
+        buffer.name = SampleName = camera.name;
+        Profiler.EndSample();
+    }
+    
     partial void PrepareForSceneWindow () 
     {
 		if (camera.cameraType == CameraType.SceneView) 
@@ -33,17 +40,12 @@ public partial class CameraRender
             ScriptableRenderContext.EmitWorldGeometryForSceneView(camera);
 		}
 	}
-    partial void DrawGizmosPre()
-    {
-        if (Handles.ShouldRenderGizmos())
-        {
-            context.DrawGizmos(camera, GizmoSubset.PreImageEffects);
-        }
-    }
+
     partial void DrawGizmosPost () 
     {
         if (Handles.ShouldRenderGizmos())
         {
+            context.DrawGizmos(camera, GizmoSubset.PreImageEffects);
             context.DrawGizmos(camera, GizmoSubset.PostImageEffects);
         }
     }
@@ -71,5 +73,9 @@ public partial class CameraRender
         var rendererList = context.CreateRendererList(rendererListDesc);
         buffer.DrawRendererList(rendererList);
     }
+    #else
+
+    const string SampleName = bufferName;
+    
 #endif
 }
