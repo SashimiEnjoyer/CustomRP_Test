@@ -43,7 +43,6 @@ public partial class CameraRender
             cullingResults,
             camera)
         {
-
             sortingCriteria = SortingCriteria.CommonOpaque,
             renderQueueRange = RenderQueueRange.opaque,
             layerMask = camera.cullingMask

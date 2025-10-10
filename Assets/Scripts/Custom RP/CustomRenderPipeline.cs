@@ -6,6 +6,13 @@ public class CustomRenderPipeline : RenderPipeline
 {
 	CameraRender cameraRender = new CameraRender();
 
+	//Enable SRP Batching in Constructor
+	public CustomRenderPipeline()
+	{
+		GraphicsSettings.useScriptableRenderPipelineBatching = false;
+	}
+	
+
     // This method is called by Unity to render the scene
     protected override void Render(ScriptableRenderContext renderContext, Camera[] cameras)
     {
@@ -14,10 +21,4 @@ public class CustomRenderPipeline : RenderPipeline
 		}
 	}
     
-    // protected override void Render (ScriptableRenderContext context, List<Camera> cameras)
-	// {
-	// 	for (int i = 0; i < cameras.Count; i++) {
-	// 		cameraRender.Render(context, cameras[i]);
-	// 	}
-	// }
 }
