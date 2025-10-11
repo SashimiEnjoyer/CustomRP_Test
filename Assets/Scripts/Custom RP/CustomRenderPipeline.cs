@@ -9,8 +9,9 @@ public class CustomRenderPipeline : RenderPipeline
 	//Enable SRP Batching in Constructor
 	public CustomRenderPipeline()
 	{
-		GraphicsSettings.useScriptableRenderPipelineBatching = false;
-	}
+		GraphicsSettings.useScriptableRenderPipelineBatching = true;
+        GraphicsSettings.lightsUseLinearIntensity = true;
+    }
 	
 
     // This method is called by Unity to render the scene

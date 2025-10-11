@@ -11,6 +11,8 @@ public partial class CameraRender
     partial void DrawUnsupportedShaders();
     partial void PrepareForSceneWindow ();
 
+#if UNITY_EDITOR
+
     static ShaderTagId[] legacyShaderTagIds = {
         new ShaderTagId("Always"),
         new ShaderTagId("ForwardBase"),
@@ -20,9 +22,6 @@ public partial class CameraRender
         new ShaderTagId("VertexLM")
     };
     static Material errorMaterial;
-
-
-#if UNITY_EDITOR
 
     string SampleName { get; set; }
     

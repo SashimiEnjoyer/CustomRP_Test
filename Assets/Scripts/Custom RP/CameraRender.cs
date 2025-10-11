@@ -5,12 +5,19 @@ using UnityEngine.Rendering.RendererUtils;
 public partial class CameraRender
 {
     const string RenderCameraBufferName = "Render Camera";
-    static ShaderTagId unlitShaderTagId = new ShaderTagId("SRPDefaultUnlit");
-   
+
+    ShaderTagId[] shaderTagIds = new ShaderTagId[]
+    {
+        new ("CustomLit"),
+        new ("SRPDefaultUnlit"),
+        new ("UniversalForward"),
+    };
+
     ScriptableRenderContext context;
     Camera camera;
     CullingResults cullingResults;
     CommandBuffer buffer = new CommandBuffer { name = RenderCameraBufferName };
+    Lighting lighting = new();
 
     // Draw all geometry that its camera can see
     public void Render(ScriptableRenderContext context, Camera camera)
@@ -25,9 +32,8 @@ public partial class CameraRender
             return;
            
         Setup();
-        DrawOpaqueGeometry();
-        DrawSkybox();
-        DrawTransparentGeometry();
+        lighting.Setup(context, cullingResults);
+        DrawGeometry();
         DrawUnsupportedShaders();
 
         DrawGizmosPost();
@@ -35,47 +41,35 @@ public partial class CameraRender
         Submit();
     }
 
-    private void DrawOpaqueGeometry()
+    private void DrawGeometry()
     {
+        var rendererListDesc = new RendererListDesc(
+            shaderTagIds,
+            cullingResults,
+            camera);
+
         //// ---------- Draw Opaque Setup ----------
-        var rendererListDesc = new RendererListDesc(
-            unlitShaderTagId,
-            cullingResults,
-            camera)
-        {
-            sortingCriteria = SortingCriteria.CommonOpaque,
-            renderQueueRange = RenderQueueRange.opaque,
-            layerMask = camera.cullingMask
-        };
+        rendererListDesc.sortingCriteria = SortingCriteria.CommonOpaque;
+        rendererListDesc.renderQueueRange = RenderQueueRange.opaque;
+        rendererListDesc.layerMask = camera.cullingMask;
 
         //// ---------- Create Renderer List ----------
         var rendererList = context.CreateRendererList(rendererListDesc);
-
         //// ---------- Ask Buffer to Draw  ----------
         buffer.DrawRendererList(rendererList);
 
-    }
+        DrawSkybox();
 
-    private void DrawTransparentGeometry()
-    {
-        //// ---------- Draw Transparent Setup ----------
-        var rendererListDesc = new RendererListDesc(
-            unlitShaderTagId,
-            cullingResults,
-            camera)
-        {
-
-            sortingCriteria = SortingCriteria.CommonTransparent,
-            renderQueueRange = RenderQueueRange.transparent,
-            layerMask = camera.cullingMask
-        };
+        //// ---------- Draw Opaque Setup ----------
+        rendererListDesc.sortingCriteria = SortingCriteria.CommonTransparent;
+        rendererListDesc.renderQueueRange = RenderQueueRange.transparent;
+        rendererListDesc.layerMask = camera.cullingMask;
 
         //// ---------- Create Renderer List ----------
-        var rendererList = context.CreateRendererList(rendererListDesc);
+        rendererList = context.CreateRendererList(rendererListDesc);
 
         //// ---------- Ask Buffer to Draw  ----------
         buffer.DrawRendererList(rendererList);
-
     }
     
     private void DrawSkybox()
@@ -124,6 +118,7 @@ public partial class CameraRender
         if (camera.TryGetCullingParameters(out ScriptableCullingParameters p))
         {
             cullingResults = context.Cull(ref p);
+
             return true;
         }
         return false;
