@@ -5,11 +5,12 @@ using UnityEngine.Rendering;
 public class CustomRenderPipeline : RenderPipeline
 {
 	CameraRender cameraRender = new CameraRender();
+	[SerializeField] bool useSRPBatch = true;
 
 	//Enable SRP Batching in Constructor
 	public CustomRenderPipeline()
 	{
-		GraphicsSettings.useScriptableRenderPipelineBatching = true;
+		GraphicsSettings.useScriptableRenderPipelineBatching = useSRPBatch;
         GraphicsSettings.lightsUseLinearIntensity = true;
     }
 	

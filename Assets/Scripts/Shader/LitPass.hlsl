@@ -1,13 +1,13 @@
 #ifndef CUSTOM_LIT_PASS_INCLUDED
 #define CUSTOM_LIT_PASS_INCLUDED
 
-#include "../Shader Library/common.hlsl"
+#include "../Shader Library/Common.hlsl"
 #include "../Shader Library/Surface.hlsl"
+#include "../Shader Library/Light.hlsl"
+#include "../Shader Library/Lighting.hlsl"
 
 TEXTURE2D(_BaseMap);
 SAMPLER(sampler_BaseMap);
-float4 _MainLightDirection;
-float4 _MainLightColor;
 
 UNITY_INSTANCING_BUFFER_START(UnityPerMaterial)
 	UNITY_DEFINE_INSTANCED_PROP(float4, _BaseMap_ST)
@@ -28,6 +28,7 @@ struct Attributes
 struct Varyings 
 {
 	float4 positionCS : SV_POSITION;
+    float3 positionWS : VAR_POSITION;
     float3 normalWS : VAR_NORMAL;
 	float2 baseUV : VAR_BASE_UV;
 	UNITY_VERTEX_INPUT_INSTANCE_ID
@@ -39,8 +40,8 @@ Varyings Vert (Attributes input)
 	Varyings output;
 	UNITY_SETUP_INSTANCE_ID(input);
 	UNITY_TRANSFER_INSTANCE_ID(input, output);
-	float3 positionWS = TransformObjectToWorld(input.positionOS);
-	output.positionCS = TransformWorldToHClip(positionWS);
+	output.positionWS = TransformObjectToWorld(input.positionOS);
+    output.positionCS = TransformWorldToHClip(output.positionWS);
     output.normalWS = TransformObjectToWorldNormal(input.normalOS);
 
 	float4 baseST = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseMap_ST);
@@ -61,10 +62,7 @@ float4 Frag (Varyings input) : SV_TARGET
     surface.color = base.rgb;
     surface.alpha = base.a;
 	
-    float lightFallOff = max(0, dot(_MainLightDirection, surface.normal));
-    float3 directDiffuseLight = lightFallOff * _MainLightColor;
-
-    return float4(surface.color * directDiffuseLight, surface.alpha);
+    return float4(GetLighting(surface) * surface.color, surface.alpha);
 }
 
 
